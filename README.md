@@ -1,159 +1,181 @@
-# CWSI — Planilha Mestre e Guia de Monitores Agrícolas
+# CWSI — Master Spreadsheet and Agricultural Monitor Guide
 
-Planilha para cálculo do **CWSI (Crop Water Stress Index)** a partir de dados de estação
-meteorológica + termometria de dossel, combinada com um **guia de transferência de arquivos
-entre o escritório e o monitor da máquina** (prescrições, linhas de guia AB, dados de trabalho).
+A spreadsheet for calculating **CWSI (Crop Water Stress Index)** from weather
+station data plus canopy thermometry, combined with a **guide to moving files
+between the office and the machine's monitor** (prescriptions, AB guidance
+lines, work data).
 
-**Entregável:** [`CWSI_Planilha_Mestre.xlsx`](CWSI_Planilha_Mestre.xlsx)
+**Deliverable:** [`CWSI_Planilha_Mestre.xlsx`](CWSI_Planilha_Mestre.xlsx)
 
 ---
 
-## Dois entregáveis neste repositório
+## Two deliverables in this repository
 
-| Pasta | O que é |
+| Folder | What it is |
 |---|---|
-| raiz + `tools/` | A **planilha CWSI** e o guia de monitores (este documento) |
-| [`platform/`](platform/) | A **AB Line Platform** — aplicação web que responde *como colocar arquivos no monitor e como tirar os dados dele*, por marca, monitor e versão de software |
+| root + `tools/` | The **CWSI spreadsheet** and its monitor guide (this document) |
+| [`platform/`](platform/) | The **AB Line Platform** — a web application answering *how do I get files into the monitor and how do I get the data back out*, by brand, display and software version |
 
-A plataforma leva adiante as abas `09_Passo_a_Passo` e `10_Base_Procedimentos`
-da planilha e as transforma em produto: você escolhe tipo de equipamento →
-monitor → **versão do software** → o que quer fazer → como os dados viajam, e
-recebe o formato de arquivo, a pasta exata no pen drive, os cliques numerados,
-como conferir se deu certo e o que costuma dar errado — com ícone do terminal e
-pronto para imprimir. São 264 procedimentos em 23 monitores, cobrindo pen drive, nuvem de 14 plataformas e software de escritório. Cada procedimento vira link compartilhável, e cada monitor tem um manual completo para impressão.
+The platform takes the spreadsheet's `09_Passo_a_Passo` and
+`10_Base_Procedimentos` tabs and turns them into a product: pick equipment type
+→ display → **software version** → what you want to do → how the data travels,
+and get the file format, the exact folder on the USB stick, numbered clicks, how
+to check it worked, and what usually goes wrong — with the terminal's icon and
+ready to print.
 
-Gerar linhas AB continua disponível, mas é o papel de apoio.
+**264 procedures across 23 displays**, covering USB, fourteen cloud platforms
+and desktop software. Every procedure is a shareable link, every display has a
+full printable handbook, and every card carries a button for sending back a
+correction from the machine.
 
-A interface da plataforma é em inglês. Os ícones dos monitores são gerados por
-`tools/gerar_icones.py` e servem aos dois entregáveis (com legenda na planilha,
-sem legenda na web).
+Generating AB lines is still there, but it is the supporting act.
 
 ```bash
 cd platform && pip install -r requirements.txt && python3 run.py --seed && python3 run.py
 ```
 
-Documentação completa: [`platform/README.md`](platform/README.md).
+Full documentation: [`platform/README.md`](platform/README.md).
+
+> **Language note.** The platform is entirely in English. The spreadsheet
+> itself and the two scripts that build it (`tools/conteudo.py`,
+> `tools/construir_planilha.py`) are still in Portuguese, along with the tab
+> names above. The icon generator and everything under `platform/` have been
+> translated. Say the word and the spreadsheet follows.
 
 ---
 
-## O que a planilha faz
+## What the spreadsheet does
 
-### Parte 1 — Cálculo do CWSI
+### Part 1 — CWSI calculation
 
-Dois métodos, selecionáveis em `01_Config`:
+Two methods, selectable in `01_Config`:
 
-| Método | Fórmula | Quando usar |
+| Method | Formula | When to use it |
 |---|---|---|
-| **Empírico (Idso, 1981)** | `CWSI = (dT − dT_LL) / (dT_UL − dT_LL)`<br>`dT_LL = a + b·VPD`  ·  `dT_UL = a + b·VPG`<br>`VPG = es(Ta) − es(Ta + a)` | Padrão. Simples, mas exige baseline (a, b) calibrada localmente. |
-| **Teórico (Jackson, 1981)** | Balanço de energia com `ra`, `Rn`, `Δ`, `γ*` | Quando há medida de Rn e vento confiáveis. |
+| **Empirical (Idso, 1981)** | `CWSI = (dT − dT_LL) / (dT_UL − dT_LL)`<br>`dT_LL = a + b·VPD`  ·  `dT_UL = a + b·VPG`<br>`VPG = es(Ta) − es(Ta + a)` | The default. Simple, but needs a locally calibrated baseline (a, b). |
+| **Theoretical (Jackson, 1981)** | Energy balance with `ra`, `Rn`, `Δ`, `γ*` | When you have reliable net radiation and wind measurements. |
 
-Toda a cadeia intermediária fica visível coluna a coluna em `04_Calculo` — `es`, `ea`, `VPD`,
-`Δ`, `γ`, `u2`, `dT`, `VPG`, os dois limites, `ra`, `γ*` — para que qualquer resultado possa ser
-auditado sem abrir fórmula.
+Every intermediate step stays visible column by column in `04_Calculo` — `es`,
+`ea`, `VPD`, `Δ`, `γ`, `u2`, `dT`, `VPG`, both limits, `ra`, `γ*` — so any
+result can be audited without opening a formula.
 
-### Parte 2 — Guia de monitores
+### Part 2 — Monitor guide
 
-`09_Passo_a_Passo` monta a sequência de cliques a partir de seis escolhas encadeadas:
+`09_Passo_a_Passo` builds the click sequence from six chained choices:
 
 ```
-marca → tipo de equipamento → monitor → versão do software → objetivo → origem/destino
+brand → equipment type → monitor → software version → objective → source/destination
 ```
 
-e devolve: **formato de arquivo**, **pasta exata no pen drive**, **sistema de arquivos**,
-**até 10 passos numerados**, **cuidados**, **erros comuns**, **grau de confiança** e **fonte**.
+and returns: **file format**, **exact folder on the USB stick**, **filesystem**,
+**up to 10 numbered steps**, **cautions**, **common errors**, **confidence
+level** and **source**.
 
-As listas de monitor e de versão são dependentes (mudam conforme a marca / o monitor escolhido).
-Quando não existe procedimento para a versão específica, a planilha cai automaticamente na
-entrada `Todas as versoes`.
+The monitor and version lists are dependent (they change with the brand and
+monitor chosen). When no procedure exists for the specific version, the
+spreadsheet falls back to the `Todas as versoes` entry automatically.
+
+> This is the part the platform supersedes. The spreadsheet holds 24 procedures,
+> all tagged "all versions"; the platform holds 264 with a real version
+> dimension. Use the spreadsheet for CWSI, the platform for monitors.
 
 ---
 
-## Abas
+## Tabs
 
-| Aba | Função |
+| Tab | Purpose |
 |---|---|
-| `00_Inicio` | Capa, índice e roteiro de uso |
-| `01_Config` | **Comece aqui.** Local, sensores, unidades, cultura, filtros, limiares |
-| `02_Estacao` | Dados brutos da estação meteorológica (colar) |
-| `03_Dossel` | Temperatura de dossel do infravermelho (colar) |
-| `04_Calculo` | Motor de cálculo, etapa por etapa. Só fórmulas |
-| `05_QC_Diagnostico` | Painel automático + checklist dos 22 erros clássicos |
-| `06_Resultados` | CWSI diário e decisão de irrigação |
-| `07_Baselines` | Coeficientes a e b por cultura + roteiro de calibração local |
-| `08_Equipamentos` | Catálogo ilustrado de 14 monitores/terminais |
-| `09_Passo_a_Passo` | Gerador do passo a passo |
-| `10_Base_Procedimentos` | Banco de procedimentos — **é aqui que o guia cresce** |
+| `00_Inicio` | Cover, index and usage guide |
+| `01_Config` | **Start here.** Location, sensors, units, crop, filters, thresholds |
+| `02_Estacao` | Raw weather station data (paste) |
+| `03_Dossel` | Canopy temperature from the infrared sensor (paste) |
+| `04_Calculo` | Calculation engine, step by step. Formulas only |
+| `05_QC_Diagnostico` | Automatic panel plus a checklist of the 22 classic errors |
+| `06_Resultados` | Daily CWSI and irrigation decision |
+| `07_Baselines` | Coefficients a and b per crop, plus a local calibration routine |
+| `08_Equipamentos` | Illustrated catalog of 14 monitors and terminals |
+| `09_Passo_a_Passo` | Step-by-step generator |
+| `10_Base_Procedimentos` | Procedure database — **this is where the guide grows** |
 | `11_Formatos_Arquivos` | Shapefile, ISOXML, .agsetup, .agdata, AgData, Rx, TASKDATA… |
-| `12_Fontes` | Referências, premissas e limitações |
+| `12_Fontes` | References, assumptions and limitations |
 
-Convenção de cores: **amarelo + azul** = você digita · **cinza** = fórmula · **laranja** = linha
-de exemplo (apagar) · **vermelho** = alerta · **verde** = verificação aprovada.
-
----
-
-## Como ampliar o guia
-
-O gerador da aba 09 é só uma consulta à aba `10_Base_Procedimentos`. Para cobrir uma combinação
-nova, acrescente uma linha lá (há 20 linhas em branco já formatadas, com listas suspensas) —
-ela passa a aparecer na aba 09 sozinha, sem mexer em fórmula.
-
-A coluna **Confiança** classifica cada linha:
-
-- **Verificado** — formato e caminho de pasta confirmados na fonte citada.
-- **Confirmar** — a estrutura está correta, mas o nome exato do menu muda entre versões.
-  Confirme na máquina e atualize a linha.
+Colour convention: **yellow + blue** = you type · **grey** = formula · **orange**
+= example row (delete it) · **red** = warning · **green** = check passed.
 
 ---
 
-## Reconstruir os arquivos
+## Extending the guide
+
+The generator on tab 09 is only a lookup into `10_Base_Procedimentos`. To cover
+a new combination, add a row there (there are 20 blank pre-formatted rows with
+dropdown lists already) — it appears on tab 09 by itself, with no formula
+changes.
+
+The **Confiança** column classifies each row:
+
+- **Verificado** — format and folder path confirmed against the cited source.
+- **Confirmar** — the structure is right, but the exact menu name changes
+  between versions. Confirm it on the machine and update the row.
+
+---
+
+## Rebuilding the files
 
 ```bash
 pip install openpyxl pillow
-python3 tools/gerar_icones.py          # gera assets/icons/*.png
-python3 tools/construir_planilha.py    # gera CWSI_Planilha_Mestre.xlsx
+python3 tools/gerar_icones.py          # generates assets/icons/*.png
+python3 tools/construir_planilha.py    # generates CWSI_Planilha_Mestre.xlsx
 ```
 
-Para uma versão menor durante testes: `LINHAS_CWSI=50 python3 tools/construir_planilha.py`
-(o padrão são 1000 linhas de dados).
+For a smaller version while testing: `LINHAS_CWSI=50 python3 tools/construir_planilha.py`
+(the default is 1000 data rows).
 
-Depois de gerar, recalcule com o LibreOffice para gravar os valores em cache:
+After generating, recalculate with LibreOffice to write the cached values:
 
 ```bash
 soffice --headless --convert-to xlsx --outdir . CWSI_Planilha_Mestre.xlsx
 ```
 
-> Requer o pacote `libreoffice-calc` — só o `libreoffice-core` não abre planilhas.
+> Requires the `libreoffice-calc` package — `libreoffice-core` alone will not
+> open spreadsheets.
 
-### Arquivos
+### Files
 
 ```
-CWSI_Planilha_Mestre.xlsx      entregável
-tools/construir_planilha.py    monta o .xlsx (layout, fórmulas, validações)
-tools/conteudo.py              conteúdo: baselines, catálogo, procedimentos, formatos
-tools/gerar_icones.py          desenha os ícones e as figuras de fluxo
-assets/icons/                  18 PNGs gerados
+CWSI_Planilha_Mestre.xlsx      the deliverable
+tools/construir_planilha.py    builds the .xlsx (layout, formulas, validation)
+tools/conteudo.py              content: baselines, catalog, procedures, formats
+tools/gerar_icones.py          draws the icons and the flow figures
+assets/icons/                  25 terminal icons in two variants, plus 4 figures
+platform/                      the AB Line Platform (see platform/README.md)
 ```
 
 ---
 
-## Sobre as figuras
+## About the figures
 
-Os ícones dos monitores são **desenhos esquemáticos próprios**, gerados por script, que
-representam o formato físico do terminal (proporção de tela, teclas físicas, encoder rotativo).
-Não reproduzem fotografias, logotipos nem marcas figurativas dos fabricantes; os nomes dos
-modelos aparecem apenas como referência textual.
+The monitor icons are **our own schematic drawings**, generated by script, that
+represent the physical shape of the terminal (screen proportion, physical keys,
+rotary encoder). They do not reproduce photographs, logos or figurative marks of
+the manufacturers; model names appear as text reference only.
+
+Two variants are generated from one source: **captioned** for the spreadsheet,
+and **caption-free** under `assets/icons/ui/` for the web platform, where the
+model name is already real text beside the picture.
 
 ---
 
-## Limitações assumidas
+## Assumed limitations
 
-- Os coeficientes de baseline da aba 07 são de **Idso (1982)**, levantados em clima árido
-  (Phoenix/AZ). Em clima úmido tendem a errar — **calibração local não é opcional** para uso
-  operacional. O roteiro está na própria aba 07.
-- Quando a estação não mede radiação líquida, `Rn` é estimado como
-  `(1 − albedo)·Rs − onda longa` com a onda longa fixada em `01_Config`. É aproximação para
-  meio-dia com céu limpo.
-- O pareamento entre estação e dossel é por **carimbo de tempo exato**, sem tolerância.
-  Registros sem par são marcados e excluídos — nunca interpolados em silêncio.
-- O CWSI pressupõe que o sensor enxerga apenas dossel. Abaixo de ~60% de cobertura do solo o
-  índice perde validade; a planilha alerta, mas não corrige.
+- The baseline coefficients on tab 07 come from **Idso (1982)**, measured in an
+  arid climate (Phoenix, AZ). In humid climates they tend to be wrong — **local
+  calibration is not optional** for operational use. The routine is on tab 07
+  itself.
+- When the station does not measure net radiation, `Rn` is estimated as
+  `(1 − albedo)·Rs − longwave`, with the longwave term fixed in `01_Config`.
+  This is an approximation for midday under a clear sky.
+- Station and canopy records are paired by **exact timestamp**, with no
+  tolerance. Unpaired records are flagged and excluded — never silently
+  interpolated.
+- CWSI assumes the sensor sees canopy only. Below roughly 60% ground cover the
+  index loses validity; the spreadsheet warns but does not correct for it.

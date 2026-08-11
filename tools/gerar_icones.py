@@ -1,15 +1,20 @@
 #!/usr/bin/env python3
 """
-Gera os icones esquematicos dos monitores agricolas e as figuras de apoio
-usadas na planilha CWSI / Guia de Monitores.
+Draws the schematic monitor icons and the supporting flow figures used by the
+CWSI spreadsheet and by the AB Line Platform.
 
-Sao desenhos proprios e esquematicos (formato fisico do terminal: proporcao de
-tela, teclas fisicas, encoder rotativo). Nao reproduzem logotipos, marcas
-figurativas nem fotografias dos fabricantes. O nome do modelo aparece apenas
-como referencia textual.
+These are our own schematic drawings of the terminal's physical shape: screen
+proportion, physical keys, rotary encoder. They do not reproduce manufacturers'
+logos, figurative marks or photographs; model names appear as text reference
+only.
 
-Uso:  python3 tools/gerar_icones.py
-Saida: assets/icons/*.png
+Two variants come out of one source:
+
+    assets/icons/*.png       with a caption, for the spreadsheet
+    assets/icons/ui/*.png    caption-free, for the web platform, where the
+                             model name is already real text beside the image
+
+Usage:  python3 tools/gerar_icones.py
 """
 
 from __future__ import annotations
@@ -20,7 +25,7 @@ from PIL import Image, ImageDraw, ImageFont
 SS = 3  # supersampling
 OUT = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "assets", "icons")
 
-# ---------------------------------------------------------------- paleta ----
+# ----------------------------------------------------------------- palette --
 BG          = (255, 255, 255, 0)
 BEZEL       = (38, 43, 49)
 BEZEL_EDGE  = (18, 21, 24)
@@ -59,12 +64,12 @@ def _center(d, xy, text, font, fill):
     d.text((x - (r - l) / 2 - l, y - (b - t) / 2 - t), text, font=font, fill=fill)
 
 
-# ------------------------------------------------------- tela do monitor ----
+# ------------------------------------------------------------ monitor screen
 def _draw_screen(base_img, box, accent):
-    """Desenha o conteudo da tela num sub-canvas e cola recortado no bezel.
+    """Draw the screen content on a sub-canvas and paste it clipped into the bezel.
 
-    O recorte e' necessario: as linhas AB em perspectiva divergem para fora
-    dos limites da tela e, sem clipping, invadiriam o bezel.
+    The clipping matters: the AB lines drawn in perspective diverge past the
+    edges of the screen, and without it they would run out over the bezel.
     """
     bx0, by0, bx1, by1 = [int(round(v)) for v in box]
     sub = Image.new("RGBA", (bx1 - bx0, by1 - by0), SCREEN_BG)
@@ -73,14 +78,14 @@ def _draw_screen(base_img, box, accent):
 
 
 def _paint_screen(d, box, accent):
-    """Conteudo da tela: campo, linhas AB, veiculo, barra de status."""
+    """Screen content: field, AB lines, vehicle, status bar."""
     x0, y0, x1, y1 = box
     w, h = x1 - x0, y1 - y0
 
     d.rectangle(box, fill=SCREEN_BG)
-    # horizonte / ceu
+    # horizon / sky
     d.rectangle((x0, y0, x1, y0 + h * 0.30), fill=SCREEN_SKY)
-    # talhao
+    # field
     d.polygon(
         [(x0, y1), (x0, y0 + h * 0.30), (x1, y0 + h * 0.24), (x1, y1)],
         fill=FIELD_DARK,
@@ -91,7 +96,7 @@ def _paint_screen(d, box, accent):
         fill=FIELD,
     )
 
-    # linhas AB em perspectiva
+    # AB lines in perspective
     for i in range(-3, 5):
         top_x = x0 + w * (0.50 + i * 0.055)
         bot_x = x0 + w * (0.50 + i * 0.20)
@@ -101,13 +106,13 @@ def _paint_screen(d, box, accent):
         wid = max(1, int(3 * SS)) if i == 0 else max(1, int(1.4 * SS))
         d.line([(top_x, y0 + h * 0.32), (bot_x, y1)], fill=col, width=wid)
 
-    # veiculo (triangulo)
+    # vehicle (triangle)
     cx, cy = x0 + w * 0.50, y0 + h * 0.74
     s = w * 0.075
     d.polygon([(cx, cy - s), (cx - s * 0.78, cy + s * 0.72), (cx + s * 0.78, cy + s * 0.72)],
               fill=VEHICLE)
 
-    # barra de status superior
+    # top status bar
     d.rectangle((x0, y0, x1, y0 + h * 0.115), fill=STATUSBAR)
     d.rectangle((x0, y0, x0 + w * 0.16, y0 + h * 0.115), fill=accent)
     for i in range(3):
@@ -118,15 +123,18 @@ def _paint_screen(d, box, accent):
 def draw_monitor(filename, label, sublabel, aspect=(16, 9), keys_right=0,
                  keys_bottom=0, rotary=False, accent=(60, 130, 200),
                  caption=True, outdir=None):
-    """Desenha um terminal esquematico.
+    """Draw a schematic terminal.
 
-    caption=True  -> com legenda (nome do modelo + specs). Usado na planilha.
-    caption=False -> so o terminal, ocupando toda a altura. Usado na interface
-                     web, onde o nome do modelo ja aparece como texto de
-                     verdade ao lado; repetir dentro da imagem duplicaria a
-                     informacao e o recorte por CSS seria fragil, porque a
-                     legenda fica logo abaixo do bezel e o bezel muda de altura
-                     conforme a proporcao de tela.
+    caption=True  -> with a caption (model name plus specs). Used by the
+                     spreadsheet.
+    caption=False -> the terminal alone, filling the full height. Used by the
+                     web interface, where the model name is already real text
+                     beside the image; repeating it inside the picture would
+                     duplicate the information.
+
+    Cropping the caption in CSS was tried first and abandoned: the caption sits
+    directly below the bezel, and the bezel's height moves with the screen
+    aspect ratio, so no fixed crop is correct for every terminal.
     """
     W, H = 380 * SS, 300 * SS
     img = Image.new("RGBA", (W, H), BG)
@@ -143,7 +151,7 @@ def draw_monitor(filename, label, sublabel, aspect=(16, 9), keys_right=0,
     rot_w = (30 * SS) if rotary else 0
 
     pad = 9 * SS
-    # area util de tela dentro do bezel
+    # usable screen area inside the bezel
     inner_w = avail_w - key_col_w - rot_w - 2 * pad
     inner_h = avail_h - key_row_h - 2 * pad
     ar = aspect[0] / aspect[1]
@@ -159,7 +167,7 @@ def draw_monitor(filename, label, sublabel, aspect=(16, 9), keys_right=0,
     by0 = top + (avail_h - bez_h) / 2
     bx1, by1 = bx0 + bez_w, by0 + bez_h
 
-    # sombra
+    # drop shadow
     d.rounded_rectangle((bx0 + 3 * SS, by0 + 4 * SS, bx1 + 3 * SS, by1 + 4 * SS),
                         radius=9 * SS, fill=(0, 0, 0, 38))
     # bezel
@@ -174,7 +182,7 @@ def draw_monitor(filename, label, sublabel, aspect=(16, 9), keys_right=0,
     d.rectangle((sx0, sy0, sx0 + sw, sy0 + sh), outline=(8, 11, 14),
                 width=max(1, int(1.2 * SS)))
 
-    # teclas laterais (softkeys)
+    # side keys (softkeys)
     if keys_right:
         kx = sx0 + sw + 6 * SS
         kw = 18 * SS
@@ -184,7 +192,7 @@ def draw_monitor(filename, label, sublabel, aspect=(16, 9), keys_right=0,
             d.rounded_rectangle((kx, ky, kx + kw, ky + gap * 0.56), radius=3 * SS,
                                 fill=KEY, outline=KEY_EDGE, width=max(1, int(SS)))
 
-    # encoder rotativo
+    # rotary encoder
     if rotary:
         rx = bx1 - 20 * SS
         ry = by0 + bez_h * 0.70
@@ -194,7 +202,7 @@ def draw_monitor(filename, label, sublabel, aspect=(16, 9), keys_right=0,
         d.ellipse((rx - r * 0.42, ry - r * 0.42, rx + r * 0.42, ry + r * 0.42),
                   fill=(88, 96, 105))
 
-    # teclas inferiores
+    # bottom keys
     if keys_bottom:
         ky = sy0 + sh + 6 * SS
         gap = sw / keys_bottom
@@ -203,19 +211,19 @@ def draw_monitor(filename, label, sublabel, aspect=(16, 9), keys_right=0,
             d.rounded_rectangle((kx, ky, kx + gap * 0.52, ky + 12 * SS), radius=3 * SS,
                                 fill=KEY, outline=KEY_EDGE, width=max(1, int(SS)))
 
-    # legenda
+    # caption
     if caption:
         _center(d, (W / 2, by1 + 16 * SS), label, _font(17 * SS, bold=True), TEXT_DARK)
         _center(d, (W / 2, by1 + 34 * SS), sublabel, _font(13 * SS), TEXT_MID)
 
     img = img.resize((W // SS, H // SS), Image.LANCZOS)
-    destino = outdir or OUT
-    os.makedirs(destino, exist_ok=True)
-    img.save(os.path.join(destino, filename))
+    destination = outdir or OUT
+    os.makedirs(destination, exist_ok=True)
+    img.save(os.path.join(destination, filename))
     return filename
 
 
-# -------------------------------------------------- figuras de processo ----
+# --------------------------------------------------------- process figures --
 def _folder(d, x, y, w, h, color=(240, 190, 92), edge=(196, 148, 58)):
     tab_w = w * 0.42
     d.polygon([(x, y + h * 0.16), (x + tab_w * 0.82, y + h * 0.16),
@@ -223,7 +231,8 @@ def _folder(d, x, y, w, h, color=(240, 190, 92), edge=(196, 148, 58)):
               fill=color, outline=edge)
 
 
-def fig_estrutura_pastas(filename="fig_estrutura_pastas.png"):
+def fig_folder_structure(filename="fig_estrutura_pastas.png"):
+    """The folder layout a display expects on a USB stick, as one picture."""
     W, H = 620 * SS, 300 * SS
     img = Image.new("RGBA", (W, H), (255, 255, 255, 255))
     d = ImageDraw.Draw(img)
@@ -231,17 +240,17 @@ def fig_estrutura_pastas(filename="fig_estrutura_pastas.png"):
     f = _font(14 * SS)
     f_s = _font(12 * SS)
 
-    d.text((22 * SS, 16 * SS), "Estrutura de pastas no pen drive (raiz do dispositivo)",
+    d.text((22 * SS, 16 * SS), "Folder structure on the USB stick (drive root)",
            font=f_t, fill=TEXT_DARK)
     d.line((22 * SS, 40 * SS, W - 22 * SS, 40 * SS), fill=(206, 212, 218), width=max(1, int(SS)))
 
     nodes = [
-        (0, "PEN DRIVE (FAT32)", "formatar em FAT32, MBR", (176, 190, 200)),
-        (1, "Rx", "prescricoes .shp + .shx + .dbf + .prj", (240, 190, 92)),
-        (1, "AgData\\Prescriptions", "prescricoes (Precision-IQ)", (240, 190, 92)),
+        (0, "USB DRIVE (FAT32)", "format FAT32, MBR partition", (176, 190, 200)),
+        (1, "Rx", "prescriptions .shp + .shx + .dbf + .prj", (240, 190, 92)),
+        (1, "AgData\\Prescriptions", "prescriptions (Precision-IQ)", (240, 190, 92)),
         (1, "TASKDATA", "TASKDATA.XML + .BIN  (ISOXML)", (240, 190, 92)),
-        (1, "GS3_2630\\<Perfil>\\RCD", "dados gravados (GreenStar 3)", (240, 190, 92)),
-        (1, "JD-Data", "dados de trabalho exportados (Gen 4/G5)", (240, 190, 92)),
+        (1, "GS3_2630\\<Profile>\\RCD", "recorded data (GreenStar 3)", (240, 190, 92)),
+        (1, "JD-Data", "exported work data (Gen 4 / G5)", (240, 190, 92)),
     ]
     y = 58 * SS
     for depth, name, desc, col in nodes:
@@ -275,7 +284,8 @@ def _arrow(d, x0, y, x1, color=(73, 105, 137), label=None, font=None, label_y=No
         _center(d, ((x0 + x1) / 2, label_y), label, font, color)
 
 
-def fig_fluxo(filename, titulo, etapas):
+def fig_flow(filename, title_text, stages):
+    """A left-to-right flow diagram: office, stick, machine."""
     W, H = 720 * SS, 178 * SS
     img = Image.new("RGBA", (W, H), (255, 255, 255, 255))
     d = ImageDraw.Draw(img)
@@ -285,19 +295,19 @@ def fig_fluxo(filename, titulo, etapas):
     f_a = _font(11 * SS, bold=True)
 
     mx = 20 * SS
-    d.text((mx, 13 * SS), titulo, font=f_t, fill=TEXT_DARK)
+    d.text((mx, 13 * SS), title_text, font=f_t, fill=TEXT_DARK)
     d.line((mx, 36 * SS, W - mx, 36 * SS), fill=(206, 212, 218), width=max(1, int(SS)))
 
-    n = len(etapas)
+    n = len(stages)
     cw = 148 * SS
     gap = (W - 2 * mx - n * cw) / max(1, n - 1)
-    y = 78 * SS          # topo dos cartoes
+    y = 78 * SS          # top of the cards
     ch = 72 * SS
-    lbl_y = 58 * SS      # rotulo da seta fica ACIMA da faixa de cartoes
+    lbl_y = 58 * SS      # the arrow label sits ABOVE the row of cards
     palette = [((226, 240, 250), (108, 160, 200)), ((233, 246, 233), (120, 175, 120)),
                ((253, 243, 224), (216, 170, 84)), ((240, 236, 250), (150, 135, 200)),
                ((235, 245, 247), (110, 165, 180))]
-    for i, (title, sub, arrow_lbl) in enumerate(etapas):
+    for i, (title, sub, arrow_lbl) in enumerate(stages):
         x = mx + i * (cw + gap)
         fill, edge = palette[i % len(palette)]
         _chip(d, x, y, cw, ch, title, sub, fill, edge, f_c, f_s)
@@ -310,12 +320,12 @@ def fig_fluxo(filename, titulo, etapas):
     return filename
 
 
-# ------------------------------------------------------------------ main ----
-# Os subrotulos usam abreviacao tecnica neutra ("touch", "ISOBUS", polegadas e
-# proporcao de tela) porque os mesmos PNGs servem a planilha em portugues e a
-# interface da plataforma em ingles. Evita manter dois jogos de icones.
-MONITORES = [
-    # (arquivo, rotulo, subrotulo, aspecto, keys_right, keys_bottom, rotary, accent)
+# ----------------------------------------------------------------------- main
+# Sub-labels use neutral technical shorthand ("touch", "ISOBUS", inches and
+# screen ratio) so that one set of drawings serves both deliverables without
+# maintaining two of everything.
+MONITORS = [
+    # (filename, label, sub-label, aspect, keys_right, keys_bottom, rotary, accent)
     ("jd_gs3_2630.png",      "GreenStar 3 2630",   "10.4\"  ·  4:3  ·  touch + keys",
      (4, 3), 6, 0, False, (86, 145, 60)),
     ("jd_gen4.png",          "Gen 4  (4240/4600/4640)", "10.1\"  ·  16:9  ·  touch",
@@ -346,7 +356,7 @@ MONITORES = [
      (16, 10), 0, 0, False, (24, 96, 158)),
     ("fendt_varioterminal.png", "Varioterminal / FendtONE", "10.4\" & 12\"  ·  ISOBUS",
      (4, 3), 4, 0, True, (72, 130, 60)),
-    # --- acrescentados para a plataforma de procedimentos --------------------
+    # --- added for the procedure platform ------------------------------------
     ("claas_cemis1200.png",  "CEMIS 1200",         "12\"  ·  16:9  ·  touch  ·  ISOBUS",
      (16, 9), 0, 0, False, (146, 168, 46)),
     ("claas_s10.png",        "S10 / GPS PILOT",    "10.4\"  ·  4:3  ·  touch + keys",
@@ -372,47 +382,49 @@ MONITORES = [
 
 def main():
     os.makedirs(OUT, exist_ok=True)
-    gerados = []
+    written = []
     ui_dir = os.path.join(OUT, "ui")
-    for args in MONITORES:
+    for args in MONITORS:
         fn, label, sub, aspect, kr, kb, rot, acc = args
-        gerados.append(draw_monitor(fn, label, sub, aspect=aspect, keys_right=kr,
+        written.append(draw_monitor(fn, label, sub, aspect=aspect, keys_right=kr,
                                     keys_bottom=kb, rotary=rot, accent=acc))
-        # Mesma arte sem legenda, para a interface web.
+        # The same artwork without a caption, for the web interface.
         draw_monitor(fn, label, sub, aspect=aspect, keys_right=kr,
                      keys_bottom=kb, rotary=rot, accent=acc,
                      caption=False, outdir=ui_dir)
 
-    gerados.append(fig_estrutura_pastas())
+    written.append(fig_folder_structure())
 
-    gerados.append(fig_fluxo(
+    # The three ways data ever moves. Filenames keep their original spelling so
+    # the spreadsheet's existing image references do not break.
+    written.append(fig_flow(
         "fig_fluxo_usb_para_monitor.png",
-        "Fluxo A - Enviar arquivos do escritorio PARA o monitor (via pen drive)",
-        [("1. ESCRITORIO", "gera Rx / linhas AB", "exporta"),
-         ("2. PEN DRIVE", "pasta correta + FAT32", "leva ao campo"),
-         ("3. MONITOR", "Importar / Gerenciador", "seleciona"),
-         ("4. TRABALHO", "vincula ao talhao", None)],
+        "Flow A - Sending files from the office TO the monitor (via USB stick)",
+        [("1. OFFICE", "build Rx / AB lines", "export"),
+         ("2. USB STICK", "right folder + FAT32", "carry to field"),
+         ("3. MONITOR", "Import / File Manager", "select"),
+         ("4. WORK", "attach to the field", None)],
     ))
 
-    gerados.append(fig_fluxo(
+    written.append(fig_flow(
         "fig_fluxo_monitor_para_pc.png",
-        "Fluxo B - Gravar/exportar os dados DO monitor para o escritorio",
-        [("1. MONITOR", "encerra o trabalho", "exporta"),
-         ("2. PEN DRIVE", "dados gravados", "leva ao PC"),
-         ("3. SOFTWARE", "importa e processa", "publica"),
-         ("4. NUVEM", "backup e analise", None)],
+        "Flow B - Getting the recorded data FROM the monitor to the office",
+        [("1. MONITOR", "end the job first", "export"),
+         ("2. USB STICK", "recorded data", "carry to PC"),
+         ("3. SOFTWARE", "import and process", "publish"),
+         ("4. CLOUD", "backup and analysis", None)],
     ))
 
-    gerados.append(fig_fluxo(
+    written.append(fig_flow(
         "fig_fluxo_nuvem.png",
-        "Fluxo C - Envio sem fio pela plataforma do fabricante (nuvem)",
-        [("1. PLATAFORMA", "web do fabricante", "envia"),
-         ("2. NUVEM", "conta + maquina", "modem/telemetria"),
-         ("3. MONITOR", "aceita transferencia", None)],
+        "Flow C - Wireless transfer through the manufacturer's platform",
+        [("1. PLATFORM", "manufacturer's web app", "send"),
+         ("2. CLOUD", "account + machine", "modem / telematics"),
+         ("3. MONITOR", "accept the transfer", None)],
     ))
 
-    print("\n".join(gerados))
-    print(f"\n{len(gerados)} arquivos gerados em {OUT}")
+    print("\n".join(written))
+    print(f"\n{len(written)} files written to {OUT}")
 
 
 if __name__ == "__main__":
