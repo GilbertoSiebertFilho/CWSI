@@ -8,6 +8,26 @@ entre o escritório e o monitor da máquina** (prescrições, linhas de guia AB,
 
 ---
 
+## Dois entregáveis neste repositório
+
+| Pasta | O que é |
+|---|---|
+| raiz + `tools/` | A **planilha CWSI** e o guia de monitores (este documento) |
+| [`platform/`](platform/) | A **AB Line Platform** — aplicação web para gerar linhas de guia AB e entregá-las no formato de arquivo que cada monitor realmente lê |
+
+A plataforma leva adiante a aba `10_Base_Procedimentos` da planilha: o mesmo
+conhecimento sobre marcas, monitores, formatos e pastas, agora executável — ela
+gera as linhas e monta o arquivo pronto para o pen drive, com as instruções de
+importação dentro do próprio download. A interface da plataforma é em inglês.
+
+```bash
+cd platform && pip install -r requirements.txt && python3 run.py --seed && python3 run.py
+```
+
+Documentação completa: [`platform/README.md`](platform/README.md).
+
+---
+
 ## O que a planilha faz
 
 ### Parte 1 — Cálculo do CWSI
