@@ -20,7 +20,7 @@ da planilha e as transforma em produto: você escolhe tipo de equipamento →
 monitor → **versão do software** → o que quer fazer → como os dados viajam, e
 recebe o formato de arquivo, a pasta exata no pen drive, os cliques numerados,
 como conferir se deu certo e o que costuma dar errado — com ícone do terminal e
-pronto para imprimir. São mais de 80 procedimentos em 22 monitores.
+pronto para imprimir. São 264 procedimentos em 23 monitores, cobrindo pen drive, nuvem de 14 plataformas e software de escritório. Cada procedimento vira link compartilhável, e cada monitor tem um manual completo para impressão.
 
 Gerar linhas AB continua disponível, mas é o papel de apoio.
 
