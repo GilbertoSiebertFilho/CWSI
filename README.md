@@ -17,8 +17,11 @@ The monitor file-transfer guide that used to live on tabs `09_Passo_a_Passo`
 and `10_Base_Procedimentos` has grown into a separate product — the **OFPE
 Field Data Platform** — with 264 procedures across 23 displays, a real
 software-version dimension and a correction loop. It has nothing to do with
-crop water stress and now lives in its own repository. The tabs remain here for
-reference; use the platform for anything operational.
+crop water stress and now lives in its own repository:
+
+**https://github.com/GilbertoSiebertFilho/OFPE**
+
+The tabs remain here for reference; use the platform for anything operational.
 
 ---
 
