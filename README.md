@@ -13,12 +13,20 @@ entre o escritório e o monitor da máquina** (prescrições, linhas de guia AB,
 | Pasta | O que é |
 |---|---|
 | raiz + `tools/` | A **planilha CWSI** e o guia de monitores (este documento) |
-| [`platform/`](platform/) | A **AB Line Platform** — aplicação web para gerar linhas de guia AB e entregá-las no formato de arquivo que cada monitor realmente lê |
+| [`platform/`](platform/) | A **AB Line Platform** — aplicação web que responde *como colocar arquivos no monitor e como tirar os dados dele*, por marca, monitor e versão de software |
 
-A plataforma leva adiante a aba `10_Base_Procedimentos` da planilha: o mesmo
-conhecimento sobre marcas, monitores, formatos e pastas, agora executável — ela
-gera as linhas e monta o arquivo pronto para o pen drive, com as instruções de
-importação dentro do próprio download. A interface da plataforma é em inglês.
+A plataforma leva adiante as abas `09_Passo_a_Passo` e `10_Base_Procedimentos`
+da planilha e as transforma em produto: você escolhe tipo de equipamento →
+monitor → **versão do software** → o que quer fazer → como os dados viajam, e
+recebe o formato de arquivo, a pasta exata no pen drive, os cliques numerados,
+como conferir se deu certo e o que costuma dar errado — com ícone do terminal e
+pronto para imprimir. São mais de 80 procedimentos em 22 monitores.
+
+Gerar linhas AB continua disponível, mas é o papel de apoio.
+
+A interface da plataforma é em inglês. Os ícones dos monitores são gerados por
+`tools/gerar_icones.py` e servem aos dois entregáveis (com legenda na planilha,
+sem legenda na web).
 
 ```bash
 cd platform && pip install -r requirements.txt && python3 run.py --seed && python3 run.py

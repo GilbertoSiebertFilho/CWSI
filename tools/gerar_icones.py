@@ -116,14 +116,25 @@ def _paint_screen(d, box, accent):
 
 
 def draw_monitor(filename, label, sublabel, aspect=(16, 9), keys_right=0,
-                 keys_bottom=0, rotary=False, accent=(60, 130, 200)):
+                 keys_bottom=0, rotary=False, accent=(60, 130, 200),
+                 caption=True, outdir=None):
+    """Desenha um terminal esquematico.
+
+    caption=True  -> com legenda (nome do modelo + specs). Usado na planilha.
+    caption=False -> so o terminal, ocupando toda a altura. Usado na interface
+                     web, onde o nome do modelo ja aparece como texto de
+                     verdade ao lado; repetir dentro da imagem duplicaria a
+                     informacao e o recorte por CSS seria fragil, porque a
+                     legenda fica logo abaixo do bezel e o bezel muda de altura
+                     conforme a proporcao de tela.
+    """
     W, H = 380 * SS, 300 * SS
     img = Image.new("RGBA", (W, H), BG)
     d = ImageDraw.Draw(img)
 
     margin_x = 18 * SS
     top = 14 * SS
-    caption_h = 46 * SS
+    caption_h = 46 * SS if caption else 14 * SS
     avail_w = W - 2 * margin_x
     avail_h = H - top - caption_h
 
@@ -193,11 +204,14 @@ def draw_monitor(filename, label, sublabel, aspect=(16, 9), keys_right=0,
                                 fill=KEY, outline=KEY_EDGE, width=max(1, int(SS)))
 
     # legenda
-    _center(d, (W / 2, by1 + 16 * SS), label, _font(17 * SS, bold=True), TEXT_DARK)
-    _center(d, (W / 2, by1 + 34 * SS), sublabel, _font(13 * SS), TEXT_MID)
+    if caption:
+        _center(d, (W / 2, by1 + 16 * SS), label, _font(17 * SS, bold=True), TEXT_DARK)
+        _center(d, (W / 2, by1 + 34 * SS), sublabel, _font(13 * SS), TEXT_MID)
 
     img = img.resize((W // SS, H // SS), Image.LANCZOS)
-    img.save(os.path.join(OUT, filename))
+    destino = outdir or OUT
+    os.makedirs(destino, exist_ok=True)
+    img.save(os.path.join(destino, filename))
     return filename
 
 
@@ -297,46 +311,77 @@ def fig_fluxo(filename, titulo, etapas):
 
 
 # ------------------------------------------------------------------ main ----
+# Os subrotulos usam abreviacao tecnica neutra ("touch", "ISOBUS", polegadas e
+# proporcao de tela) porque os mesmos PNGs servem a planilha em portugues e a
+# interface da plataforma em ingles. Evita manter dois jogos de icones.
 MONITORES = [
     # (arquivo, rotulo, subrotulo, aspecto, keys_right, keys_bottom, rotary, accent)
-    ("jd_gs3_2630.png",      "GreenStar 3 2630",   "10.4\"  4:3  |  tela sensivel + teclas",
+    ("jd_gs3_2630.png",      "GreenStar 3 2630",   "10.4\"  ·  4:3  ·  touch + keys",
      (4, 3), 6, 0, False, (86, 145, 60)),
-    ("jd_gen4.png",          "Gen 4  (4240/4600/4640)", "10.1\"  16:9  |  tela sensivel",
+    ("jd_gen4.png",          "Gen 4  (4240/4600/4640)", "10.1\"  ·  16:9  ·  touch",
      (16, 9), 0, 0, False, (86, 145, 60)),
-    ("jd_g5.png",            "G5  (G5e/G5/G5Plus)", "12.8\"  16:9  |  tela sensivel",
+    ("jd_g5.png",            "G5  (G5e/G5/G5Plus)", "12.8\"  ·  16:9  ·  touch",
      (16, 9), 0, 0, False, (86, 145, 60)),
-    ("cih_afs_pro700.png",   "AFS Pro 700",        "10.4\"  4:3  |  encoder + teclas",
+    ("cih_afs_pro700.png",   "AFS Pro 700",        "10.4\"  ·  4:3  ·  encoder + keys",
      (4, 3), 5, 0, True, (176, 58, 46)),
-    ("cih_afs_pro1200.png",  "AFS Pro 1200",       "12.1\"  16:10  |  tela sensivel",
+    ("cih_afs_pro1200.png",  "AFS Pro 1200",       "12.1\"  ·  16:10  ·  touch",
      (16, 10), 0, 0, False, (176, 58, 46)),
-    ("nh_intelliview4.png",  "IntelliView IV",     "10.4\"  4:3  |  encoder + teclas",
+    ("nh_intelliview4.png",  "IntelliView IV",     "10.4\"  ·  4:3  ·  encoder + keys",
      (4, 3), 5, 0, True, (52, 106, 168)),
-    ("nh_intelliview12.png", "IntelliView 12",     "12.1\"  16:10  |  tela sensivel",
+    ("nh_intelliview12.png", "IntelliView 12",     "12.1\"  ·  16:10  ·  touch",
      (16, 10), 0, 0, False, (52, 106, 168)),
-    ("trimble_gfx750.png",   "GFX-750",            "10.1\"  16:9  |  teclas inferiores",
+    ("trimble_gfx750.png",   "GFX-750",            "10.1\"  ·  16:9  ·  bottom keys",
      (16, 9), 0, 4, False, (0, 118, 168)),
-    ("trimble_gfx1060.png",  "GFX-1060 / GFX-1260", "10\" e 12\"  16:9  |  tela sensivel",
+    ("trimble_gfx1060.png",  "GFX-1060 / GFX-1260", "10\" & 12\"  ·  16:9  ·  touch",
      (16, 9), 0, 0, False, (0, 118, 168)),
-    ("trimble_tmx2050.png",  "TMX-2050",           "12.1\"  16:10  |  tela sensivel",
+    ("trimble_tmx2050.png",  "TMX-2050",           "12.1\"  ·  16:10  ·  touch",
      (16, 10), 0, 0, False, (0, 118, 168)),
-    ("agleader_incommand.png", "InCommand 800 / 1200", "8\" e 12.1\"  |  tela sensivel",
+    ("trimble_fmx.png",      "FmX / CFX-750",      "12.1\" & 8\"  ·  4:3  ·  AgGPS",
+     (4, 3), 0, 0, False, (0, 118, 168)),
+    ("agleader_incommand.png", "InCommand 800 / 1200", "8\" & 12.1\"  ·  touch",
      (16, 10), 0, 0, False, (222, 138, 40)),
-    ("raven_viper4.png",     "Viper 4 / Viper 4+",  "12.1\"  |  tela sensivel",
+    ("raven_viper4.png",     "Viper 4 / Viper 4+",  "12.1\"  ·  touch",
      (16, 10), 0, 0, False, (196, 62, 52)),
-    ("topcon_x35.png",       "X35 / XD+ (Horizon)", "12.1\"  |  tela sensivel  |  ISOBUS",
+    ("topcon_x35.png",       "X35 / XD+ (Horizon)", "12.1\"  ·  touch  ·  ISOBUS",
      (16, 10), 0, 0, False, (24, 96, 158)),
-    ("fendt_varioterminal.png", "Varioterminal / FendtONE", "10.4\" e 12\"  |  ISOBUS",
+    ("fendt_varioterminal.png", "Varioterminal / FendtONE", "10.4\" & 12\"  ·  ISOBUS",
      (4, 3), 4, 0, True, (72, 130, 60)),
+    # --- acrescentados para a plataforma de procedimentos --------------------
+    ("claas_cemis1200.png",  "CEMIS 1200",         "12\"  ·  16:9  ·  touch  ·  ISOBUS",
+     (16, 9), 0, 0, False, (146, 168, 46)),
+    ("claas_s10.png",        "S10 / GPS PILOT",    "10.4\"  ·  4:3  ·  touch + keys",
+     (4, 3), 4, 0, False, (146, 168, 46)),
+    ("valtra_smarttouch.png", "SmartTouch",        "9\"  ·  16:9  ·  touch  ·  ISOBUS",
+     (16, 9), 0, 0, False, (52, 78, 132)),
+    ("mf_datatronic.png",    "Datatronic 5",       "9\"  ·  16:9  ·  touch  ·  ISOBUS",
+     (16, 9), 0, 0, False, (176, 42, 46)),
+    ("kverneland_isomatch.png", "IsoMatch Tellus", "12.1\"  ·  touch  ·  ISOBUS",
+     (16, 10), 0, 0, False, (60, 108, 62)),
+    ("mueller_touch1200.png", "TOUCH 1200 / 800",  "12.1\" & 8\"  ·  TRACK-Leader",
+     (16, 10), 0, 4, False, (66, 88, 112)),
+    ("pp_2020.png",          "20|20",              "12.1\"  ·  touch  ·  SeedSense",
+     (16, 10), 0, 0, False, (40, 46, 54)),
+    ("teejet_matrix.png",    "Matrix Pro GS",      "8\" & 10.4\"  ·  touch + keys",
+     (4, 3), 0, 5, False, (196, 128, 34)),
+    ("agopengps.png",        "AgOpenGPS",          "tablet / PC  ·  open source",
+     (16, 10), 0, 0, False, (86, 122, 168)),
+    ("generic_isobus.png",   "ISOBUS terminal",    "any TC-BAS terminal  ·  ISOXML",
+     (16, 10), 0, 0, False, (108, 117, 125)),
 ]
 
 
 def main():
     os.makedirs(OUT, exist_ok=True)
     gerados = []
+    ui_dir = os.path.join(OUT, "ui")
     for args in MONITORES:
         fn, label, sub, aspect, kr, kb, rot, acc = args
         gerados.append(draw_monitor(fn, label, sub, aspect=aspect, keys_right=kr,
                                     keys_bottom=kb, rotary=rot, accent=acc))
+        # Mesma arte sem legenda, para a interface web.
+        draw_monitor(fn, label, sub, aspect=aspect, keys_right=kr,
+                     keys_bottom=kb, rotary=rot, accent=acc,
+                     caption=False, outdir=ui_dir)
 
     gerados.append(fig_estrutura_pastas())
 
