@@ -9,38 +9,16 @@ lines, work data).
 
 ---
 
-## Two deliverables in this repository
+## Scope
 
-| Folder | What it is |
-|---|---|
-| root + `tools/` | The **CWSI spreadsheet** and its monitor guide (this document) |
-| [`platform/`](platform/) | The **AB Line Platform** — a web application answering *how do I get files into the monitor and how do I get the data back out*, by brand, display and software version |
+This repository is the CWSI spreadsheet and nothing else.
 
-The platform takes the spreadsheet's `09_Passo_a_Passo` and
-`10_Base_Procedimentos` tabs and turns them into a product: pick equipment type
-→ display → **software version** → what you want to do → how the data travels,
-and get the file format, the exact folder on the USB stick, numbered clicks, how
-to check it worked, and what usually goes wrong — with the terminal's icon and
-ready to print.
-
-**264 procedures across 23 displays**, covering USB, fourteen cloud platforms
-and desktop software. Every procedure is a shareable link, every display has a
-full printable handbook, and every card carries a button for sending back a
-correction from the machine.
-
-Generating AB lines is still there, but it is the supporting act.
-
-```bash
-cd platform && pip install -r requirements.txt && python3 run.py --seed && python3 run.py
-```
-
-Full documentation: [`platform/README.md`](platform/README.md).
-
-> **Language note.** The platform is entirely in English. The spreadsheet
-> itself and the two scripts that build it (`tools/conteudo.py`,
-> `tools/construir_planilha.py`) are still in Portuguese, along with the tab
-> names above. The icon generator and everything under `platform/` have been
-> translated. Say the word and the spreadsheet follows.
+The monitor file-transfer guide that used to live on tabs `09_Passo_a_Passo`
+and `10_Base_Procedimentos` has grown into a separate product — the **OFPE
+Field Data Platform** — with 264 procedures across 23 displays, a real
+software-version dimension and a correction loop. It has nothing to do with
+crop water stress and now lives in its own repository. The tabs remain here for
+reference; use the platform for anything operational.
 
 ---
 
@@ -59,7 +37,7 @@ Every intermediate step stays visible column by column in `04_Calculo` — `es`,
 `ea`, `VPD`, `Δ`, `γ`, `u2`, `dT`, `VPG`, both limits, `ra`, `γ*` — so any
 result can be audited without opening a formula.
 
-### Part 2 — Monitor guide
+### Part 2 — Monitor guide (superseded)
 
 `09_Passo_a_Passo` builds the click sequence from six chained choices:
 
@@ -75,9 +53,9 @@ The monitor and version lists are dependent (they change with the brand and
 monitor chosen). When no procedure exists for the specific version, the
 spreadsheet falls back to the `Todas as versoes` entry automatically.
 
-> This is the part the platform supersedes. The spreadsheet holds 24 procedures,
-> all tagged "all versions"; the platform holds 264 with a real version
-> dimension. Use the spreadsheet for CWSI, the platform for monitors.
+> Superseded by the OFPE Field Data Platform. This holds 24 procedures, all
+> tagged `Todas as versoes`; the platform holds 264 with a real version
+> dimension. Use this spreadsheet for CWSI, the platform for monitors.
 
 ---
 
@@ -119,6 +97,18 @@ The **Confiança** column classifies each row:
 
 ---
 
+## Language
+
+This README is in English. The spreadsheet itself and the two scripts that
+build it (`tools/conteudo.py`, `tools/construir_planilha.py`) are in
+Portuguese, as are the tab names throughout. Translating them means producing
+an English CWSI spreadsheet, which is a product decision rather than a
+clean-up — say the word.
+
+`tools/gerar_icones.py` has been translated.
+
+---
+
 ## Rebuilding the files
 
 ```bash
@@ -147,7 +137,6 @@ tools/construir_planilha.py    builds the .xlsx (layout, formulas, validation)
 tools/conteudo.py              content: baselines, catalog, procedures, formats
 tools/gerar_icones.py          draws the icons and the flow figures
 assets/icons/                  25 terminal icons in two variants, plus 4 figures
-platform/                      the AB Line Platform (see platform/README.md)
 ```
 
 ---
@@ -159,9 +148,11 @@ represent the physical shape of the terminal (screen proportion, physical keys,
 rotary encoder). They do not reproduce photographs, logos or figurative marks of
 the manufacturers; model names appear as text reference only.
 
-Two variants are generated from one source: **captioned** for the spreadsheet,
-and **caption-free** under `assets/icons/ui/` for the web platform, where the
-model name is already real text beside the picture.
+Two variants are generated from one source: **captioned**, which is what the
+spreadsheet embeds, and **caption-free** under `assets/icons/ui/`.
+
+The OFPE platform keeps its own copy of this generator and its own assets, so
+the two projects can diverge without breaking each other.
 
 ---
 
