@@ -64,13 +64,20 @@ COL_DERIVADO = {
     "wind_ms": 15, "precip": 17, "wc15": 19, "dT": 20,
 }
 
-# Camadas de solo, espessuras em mm.
-# Padrao: so a camada 0-15 cm (150 mm), que e' a unica disponivel nas abas
-# derivadas e a escolhida para o calculo.
-CAMADAS_15CM = [("wc15", 150.0)]
-# Alternativa com --perfil-completo, so nas abas brutas: cada sensor
-# representa a camada centrada nele, 0 a 67,5 cm.
-CAMADAS_PERFIL = [("wc15", 225.0), ("wc30", 150.0), ("wc45", 150.0), ("wc60", 150.0)]
+# Camadas de solo, espessuras em mm. Cada sensor representa a camada
+# limitada pelos pontos medios entre ele e os vizinhos.
+#
+#   0-15    so o sensor de superficie, camada de 150 mm.
+#   0-60    toda a coluna instrumentada: os 4 sensores, do topo ate a
+#           profundidade do sensor mais fundo (60 cm = 600 mm).
+#   0-67.5  idem, mas estendendo a camada do sensor de 60 cm ate 67,5 cm
+#           pela convencao do ponto medio (675 mm). Extrapola 7,5 cm
+#           abaixo do sensor mais fundo.
+CAMADAS = {
+    "0-15":   [("wc15", 150.0)],
+    "0-60":   [("wc15", 225.0), ("wc30", 150.0), ("wc45", 150.0), ("wc60", 75.0)],
+    "0-67.5": [("wc15", 225.0), ("wc30", 150.0), ("wc45", 150.0), ("wc60", 150.0)],
+}
 
 LAYOUT_DE = {
     "02_Baseline_Input": "bruto", "05_Season_Input": "bruto",
@@ -152,11 +159,15 @@ def num(v):
         return None
 
 
-def ler_15min(path, aba, perfil_completo=False):
-    """Le a aba e devolve registros com chaves uniformes, seja qual for o layout."""
+def ler_15min(path, aba, solo="0-60"):
+    """Le a aba e devolve registros com chaves uniformes, seja qual for o layout.
+
+    As abas derivadas (03/06) so trazem WC 15 cm, entao qualquer escolha de
+    solo que exija os sensores profundos cai de volta para 0-15 cm.
+    """
     layout = LAYOUT_DE.get(aba, "bruto")
     cols = COL_BRUTO if layout == "bruto" else COL_DERIVADO
-    camadas = CAMADAS_PERFIL if (layout == "bruto" and perfil_completo) else CAMADAS_15CM
+    camadas = CAMADAS[solo] if layout == "bruto" else CAMADAS["0-15"]
 
     from openpyxl import load_workbook
     wb = load_workbook(path, data_only=True, read_only=True)
@@ -279,23 +290,26 @@ def main():
     ap.add_argument("--lat", type=float)
     ap.add_argument("--alt", type=float)
     ap.add_argument("--mostrar", type=int, default=12)
-    ap.add_argument("--perfil-completo", action="store_true",
-                    help="usa os 4 sensores (0-67,5 cm) em vez de so a camada 0-15 cm; "
-                         "so vale nas abas brutas 02/05")
+    ap.add_argument("--solo", choices=sorted(CAMADAS), default="0-60",
+                    help="profundidade de solo no balanco hidrico. 0-60 (padrao) usa "
+                         "toda a coluna instrumentada. So vale nas abas brutas 02/05; "
+                         "as derivadas 03/06 so tem WC 15 cm.")
     args = ap.parse_args()
 
     setup = ler_setup(args.xlsx)
     lat = args.lat if args.lat is not None else setup.get("lat", 51.7782)
     alt = args.alt if args.alt is not None else setup.get("alt", 995.0)
 
-    regs, layout, camadas = ler_15min(args.xlsx, args.sheet, args.perfil_completo)
+    regs, layout, camadas = ler_15min(args.xlsx, args.sheet, args.solo)
     dias, desc = agregar_diario(regs, camadas, alt)
     if len(dias) < 3:
         print("Dados diarios insuficientes.", file=sys.stderr)
         sys.exit(1)
 
     perfil_mm = sum(t for _, t in camadas)
-    prof = "0-67,5 cm (4 sensores)" if len(camadas) == 4 else "0-15 cm"
+    prof = f"{'0-15 cm' if len(camadas) == 1 else args.solo.replace('.', ',') + ' cm'}"
+    if layout == "derivado" and args.solo != "0-15":
+        prof += "  (a aba derivada so tem WC 15 cm)"
     print("=" * 92)
     print(f"ABA {args.sheet}  (layout {layout})  |  lat {lat:.4f}  alt {alt:.0f} m")
     print(f"umidade do solo: {prof}  ({perfil_mm:.0f} mm de perfil, {len(camadas)} sensor(es))")
