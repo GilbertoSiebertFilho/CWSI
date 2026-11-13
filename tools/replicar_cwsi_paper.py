@@ -45,15 +45,37 @@ G_SC = 0.0820
 # Cabecalho na linha 4, dados a partir da linha 5 (export ZL6 colado na planilha)
 LINHA_CAB = 4
 
-COL = {                      # 1-based, conforme o export ZL6/ATMOS 41
-    "ts": 1, "rs": 2, "precip": 3, "wind": 10, "tair": 12,
+# Dois layouts possiveis.
+#
+# "bruto"    abas 02_Baseline_Input e 05_Season_Input: o export ZL6/ATMOS 41
+#            cru, 37 colunas, vento em km/h, perfil de umidade em 4
+#            profundidades (15/30/45/60 cm).
+#
+# "derivado" abas 03_Baseline_Fit e 06_CWSI: a versao ja processada pela
+#            planilha, vento em m/s, mas com UMA unica profundidade de
+#            umidade (WC 15 cm). Traz tambem o flag de QC da planilha.
+COL_BRUTO = {
+    "ts": 1, "rs": 2, "precip": 3, "wind_kmh": 10, "tair": 12,
     "ea": 13, "patm": 14, "tmin": 16, "tmax": 17, "vpd": 20,
     "wc15": 21, "wc30": 23, "wc45": 25, "wc60": 27, "tc": 32,
 }
+COL_DERIVADO = {
+    "ts": 2, "tair": 5, "tc": 6, "ea": 7, "vpd": 9, "rs": 10,
+    "wind_ms": 15, "precip": 17, "wc15": 19, "dT": 20,
+}
 
-# Cada sensor representa a camada centrada nele; espessuras em mm.
-CAMADAS = [("wc15", 225.0), ("wc30", 150.0), ("wc45", 150.0), ("wc60", 150.0)]
-PERFIL_MM = sum(t for _, t in CAMADAS)        # 675 mm = 0 a 67,5 cm
+# Camadas de solo, espessuras em mm.
+# Padrao: so a camada 0-15 cm (150 mm), que e' a unica disponivel nas abas
+# derivadas e a escolhida para o calculo.
+CAMADAS_15CM = [("wc15", 150.0)]
+# Alternativa com --perfil-completo, so nas abas brutas: cada sensor
+# representa a camada centrada nele, 0 a 67,5 cm.
+CAMADAS_PERFIL = [("wc15", 225.0), ("wc30", 150.0), ("wc45", 150.0), ("wc60", 150.0)]
+
+LAYOUT_DE = {
+    "02_Baseline_Input": "bruto", "05_Season_Input": "bruto",
+    "03_Baseline_Fit": "derivado", "06_CWSI": "derivado",
+}
 
 
 # --------------------------------------------------------------- fisica ----
@@ -130,31 +152,46 @@ def num(v):
         return None
 
 
-def ler_15min(path, aba):
+def ler_15min(path, aba, perfil_completo=False):
+    """Le a aba e devolve registros com chaves uniformes, seja qual for o layout."""
+    layout = LAYOUT_DE.get(aba, "bruto")
+    cols = COL_BRUTO if layout == "bruto" else COL_DERIVADO
+    camadas = CAMADAS_PERFIL if (layout == "bruto" and perfil_completo) else CAMADAS_15CM
+
     from openpyxl import load_workbook
     wb = load_workbook(path, data_only=True, read_only=True)
     if aba not in wb.sheetnames:
         print(f"ERRO: aba '{aba}' nao existe. Abas: {wb.sheetnames}", file=sys.stderr)
         sys.exit(2)
     ws = wb[aba]
+    ic = cols["ts"] - 1
     regs = []
-    for i, r in enumerate(ws.iter_rows(min_row=LINHA_CAB + 1, values_only=True), 1):
-        if not r or r[0] is None:
+    for r in ws.iter_rows(min_row=LINHA_CAB + 1, values_only=True):
+        if not r or len(r) <= ic or r[ic] is None:
             continue
-        ts = r[0]
+        ts = r[ic]
         if not isinstance(ts, datetime):
             try:
                 ts = datetime.fromisoformat(str(ts).split(".")[0])
             except ValueError:
                 continue
         d = {"ts": ts}
-        for k, c in COL.items():
+        for k, c in cols.items():
             if k == "ts":
                 continue
             d[k] = num(r[c - 1]) if c - 1 < len(r) else None
+        # vento sempre em m/s
+        if d.get("wind_ms") is not None:
+            d["wind"] = d["wind_ms"]
+        elif d.get("wind_kmh") is not None:
+            d["wind"] = d["wind_kmh"] / 3.6
+        else:
+            d["wind"] = None
+        for k in ("patm", "tmax", "tmin", "wc30", "wc45", "wc60"):
+            d.setdefault(k, None)
         regs.append(d)
     wb.close()
-    return regs
+    return regs, layout, camadas
 
 
 def ler_setup(path):
@@ -177,28 +214,35 @@ def ler_setup(path):
     return out
 
 
-def agregar_diario(regs, min_frac=0.80):
-    """15 min -> diario. Descarta dias com menos de min_frac dos 96 registros."""
+def agregar_diario(regs, camadas, alt, min_frac=0.80):
+    """15 min -> diario. Descarta dias com menos de min_frac dos 96 registros.
+
+    Quando a aba nao traz pressao atmosferica (layout derivado), usa a
+    pressao padrao pela altitude (FAO-56 eq. 7). Quando nao traz Tmax/Tmin,
+    tira do proprio Ta de 15 min, o que e' mais fiel ao dia do que as
+    colunas agregadas do logger.
+    """
+    patm_padrao = 101.3 * ((293 - 0.0065 * alt) / 293) ** 5.26
     dias = defaultdict(list)
     for d in regs:
         dias[d["ts"].date()].append(d)
-    saida = []
-    descartados = []
+    saida, descartados = [], []
     for data in sorted(dias):
         g = dias[data]
+
         def col(k):
-            return [x[k] for x in g if x[k] is not None]
-        tair, rs, wind, ea, patm = col("tair"), col("rs"), col("wind"), col("ea"), col("patm")
-        precip = col("precip")
-        if len(g) < 96 * min_frac or not (tair and rs and wind and ea and patm):
+            return [x[k] for x in g if x.get(k) is not None]
+
+        tair, rs, wind, ea = col("tair"), col("rs"), col("wind"), col("ea")
+        patm, precip = col("patm"), col("precip")
+        if len(g) < 96 * min_frac or not (tair and rs and wind and ea):
             descartados.append((data, len(g)))
             continue
-        # armazenamento do perfil em mm
         s_vals = []
         for x in g:
             tot, ok = 0.0, True
-            for k, esp in CAMADAS:
-                if x[k] is None:
+            for k, esp in camadas:
+                if x.get(k) is None:
                     ok = False
                     break
                 tot += (x[k] / 100.0) * esp
@@ -215,9 +259,9 @@ def agregar_diario(regs, min_frac=0.80):
             "tmax": max(col("tmax") or tair),
             "tmin": min(col("tmin") or tair),
             "ea": sum(ea) / len(ea),
-            "u2": (sum(wind) / len(wind)) / 3.6,          # km/h -> m/s
+            "u2": sum(wind) / len(wind),                   # ja em m/s
             "rs_mj": (sum(rs) / len(rs)) * 0.0864,         # W/m2 medio -> MJ/m2/dia
-            "patm": sum(patm) / len(patm),
+            "patm": (sum(patm) / len(patm)) if patm else patm_padrao,
             "precip": sum(precip),
             "S": sum(s_vals) / len(s_vals),                # armazenamento medio, mm
             "tc": (sum(tcs) / len(tcs)) if tcs else None,
@@ -235,20 +279,26 @@ def main():
     ap.add_argument("--lat", type=float)
     ap.add_argument("--alt", type=float)
     ap.add_argument("--mostrar", type=int, default=12)
+    ap.add_argument("--perfil-completo", action="store_true",
+                    help="usa os 4 sensores (0-67,5 cm) em vez de so a camada 0-15 cm; "
+                         "so vale nas abas brutas 02/05")
     args = ap.parse_args()
 
     setup = ler_setup(args.xlsx)
     lat = args.lat if args.lat is not None else setup.get("lat", 51.7782)
     alt = args.alt if args.alt is not None else setup.get("alt", 995.0)
 
-    regs = ler_15min(args.xlsx, args.sheet)
-    dias, desc = agregar_diario(regs)
+    regs, layout, camadas = ler_15min(args.xlsx, args.sheet, args.perfil_completo)
+    dias, desc = agregar_diario(regs, camadas, alt)
     if len(dias) < 3:
         print("Dados diarios insuficientes.", file=sys.stderr)
         sys.exit(1)
 
+    perfil_mm = sum(t for _, t in camadas)
+    prof = "0-67,5 cm (4 sensores)" if len(camadas) == 4 else "0-15 cm"
     print("=" * 92)
-    print(f"ABA {args.sheet}  |  lat {lat:.4f}  alt {alt:.0f} m  |  perfil de solo 0-67,5 cm ({PERFIL_MM:.0f} mm)")
+    print(f"ABA {args.sheet}  (layout {layout})  |  lat {lat:.4f}  alt {alt:.0f} m")
+    print(f"umidade do solo: {prof}  ({perfil_mm:.0f} mm de perfil, {len(camadas)} sensor(es))")
     print(f"{len(regs)} registros de 15 min  ->  {len(dias)} dias completos"
           f"  ({len(desc)} dias descartados por cobertura < 80%)")
     print(f"periodo: {dias[0]['data']}  a  {dias[-1]['data']}")
